@@ -254,15 +254,55 @@
     btn.addEventListener("click", onClick);
     actions.appendChild(btn);
   }
-
-  function showResult(opt, { pendingCashChoice = false } = {}) {
+  
+  function offerMysterySwap() {
+  const mystery = options.find(o => o.type === "mystery");
+  addAction("换成神秘礼物 🎁", "danger", () => {
+    resultMain.textContent = `你选择了：${mystery.label}`;
+    resultSub.textContent = "神秘礼物已锁定～想要的话，就来找我领 😌";
     clearActions();
+  });
+}
 
-    if (typeof opt === "string") {
-      resultMain.textContent = opt;
-      resultSub.textContent = "";
-      return;
-    }
+function showResult(opt, { pendingCashChoice = false } = {}) {
+  clearActions();
+
+  if (typeof opt === "string") {
+    resultMain.textContent = opt;
+    resultSub.textContent = "";
+    return;
+  }
+
+  resultMain.textContent = `你抽到：${opt.label}`;
+  resultSub.textContent = "（要不……截图发我？我看看你有没有作弊 😏）";
+
+  // 1) 现金：保留“拿现金”，并且也提供“换神秘礼物”
+  if (opt.type === "cash") {
+    resultSub.textContent = "你可以选择：现在拿现金，或者换成「神秘礼物」？";
+    addAction("现在拿现金 ✅", "primary", () => {
+      resultMain.textContent = `确认：现金${opt.amount}`;
+      resultSub.textContent = "好～那我记账了（转账/红包由你们自己约定发放方式）";
+      clearActions();
+      // 现金确认后，你如果仍然希望还能换神秘礼物，也可以把下面这一行取消注释：
+      // offerMysterySwap();
+    });
+    offerMysterySwap();
+    return;
+  }
+
+  // 2) 惩罚：保留“再抽一次”，并且也提供“换神秘礼物”
+  if (opt.type === "punish") {
+    resultSub.textContent = "惩罚选项：答应对方一个要求（不过你可以再抽一次，或者直接换神秘礼物）";
+    addAction("再抽一次 🔁", "primary", () => spin(true));
+    offerMysterySwap();
+    return;
+  }
+
+  // 3) 其他所有选项：统一提供“换成神秘礼物”
+  resultSub.textContent = "你也可以选择：把它换成「神秘礼物」～";
+  offerMysterySwap();
+}
+
 
     resultMain.textContent = `你抽到：${opt.label}`;
     // 默认副文案
@@ -373,5 +413,6 @@
 </script>
 </body>
 </html>
+
 
 
