@@ -127,7 +127,7 @@
     { id: 2, label: "神秘礼物", type: "mystery" },
     { id: 3, label: "可以提一个要求", type: "ask" },
     { id: 4, label: "现金500", type: "cash", amount: 500 },
-    { id: 5, label: "答应对象一个要求（唯一惩罚项：可再抽一次）", type: "punish" },
+    { id: 5, label: "答应对象一个要求（惩罚：可再抽一次）", type: "punish" },
     { id: 6, label: "现金1500", type: "cash", amount: 1500 },
     { id: 7, label: "洛丽塔", type: "gift" },
     { id: 8, label: "包包", type: "gift" }
@@ -135,21 +135,19 @@
 
   /**
    * 概率权重（总和=100）
-   * - 现金1000：10%
-   * - 可以提一个要求：10%
-   * - 其余6项均分剩余80% => 每项 13.333...%
-   * 你要改概率，只改这里就行。
+   * 现金三项合计10%，默认三项均分 => 每项 10/3
+   * 其余5项均分剩余90% => 每项 18
    */
   const weights = new Map([
-  [4, 10/3],  // 现金500
-  [1, 10/3],  // 现金1000
-  [6, 10/3],  // 现金1500
+    [4, 10/3],  // 现金500
+    [1, 10/3],  // 现金1000
+    [6, 10/3],  // 现金1500
 
-  [2, 18],    // 神秘礼物
-  [3, 18],    // 可以提一个要求
-  [5, 18],    // 惩罚：答应对象一个要求
-  [7, 18],    // 洛丽塔
-  [8, 18],    // 包包
+    [2, 18],    // 神秘礼物
+    [3, 18],    // 可以提一个要求
+    [5, 18],    // 惩罚：答应对象一个要求
+    [7, 18],    // 洛丽塔
+    [8, 18],    // 包包
   ]);
 
   /**
@@ -254,83 +252,54 @@
     btn.addEventListener("click", onClick);
     actions.appendChild(btn);
   }
-  
+
+  // ✅ 新增：所有结果都提供“换成神秘礼物”
   function offerMysterySwap() {
-  const mystery = options.find(o => o.type === "mystery");
-  addAction("换成神秘礼物 🎁", "danger", () => {
-    resultMain.textContent = `你选择了：${mystery.label}`;
-    resultSub.textContent = "神秘礼物已锁定～想要的话，就来找我领 😌";
-    clearActions();
-  });
-}
-
-function showResult(opt, { pendingCashChoice = false } = {}) {
-  clearActions();
-
-  if (typeof opt === "string") {
-    resultMain.textContent = opt;
-    resultSub.textContent = "";
-    return;
-  }
-
-  resultMain.textContent = `你抽到：${opt.label}`;
-  resultSub.textContent = "（要不……截图发我？我看看你有没有作弊 😏）";
-
-  // 1) 现金：保留“拿现金”，并且也提供“换神秘礼物”
-  if (opt.type === "cash") {
-    resultSub.textContent = "你可以选择：现在拿现金，或者换成「神秘礼物」？";
-    addAction("现在拿现金 ✅", "primary", () => {
-      resultMain.textContent = `确认：现金${opt.amount}`;
-      resultSub.textContent = "好～那我记账了（转账/红包由你们自己约定发放方式）";
+    const mystery = options.find(o => o.type === "mystery");
+    addAction("换成神秘礼物 🎁", "danger", () => {
+      resultMain.textContent = `你选择了：${mystery.label}`;
+      resultSub.textContent = "神秘礼物已锁定～想要的话，就来找我领 😌";
       clearActions();
-      // 现金确认后，你如果仍然希望还能换神秘礼物，也可以把下面这一行取消注释：
-      // offerMysterySwap();
     });
-    offerMysterySwap();
-    return;
   }
 
-  // 2) 惩罚：保留“再抽一次”，并且也提供“换神秘礼物”
-  if (opt.type === "punish") {
-    resultSub.textContent = "惩罚选项：答应对方一个要求（不过你可以再抽一次，或者直接换神秘礼物）";
-    addAction("再抽一次 🔁", "primary", () => spin(true));
-    offerMysterySwap();
-    return;
-  }
+  function showResult(opt, { pendingCashChoice = false } = {}) {
+    clearActions();
 
-  // 3) 其他所有选项：统一提供“换成神秘礼物”
-  resultSub.textContent = "你也可以选择：把它换成「神秘礼物」～";
-  offerMysterySwap();
-}
-
+    if (typeof opt === "string") {
+      resultMain.textContent = opt;
+      resultSub.textContent = "";
+      return;
+    }
 
     resultMain.textContent = `你抽到：${opt.label}`;
-    // 默认副文案
     resultSub.textContent = "（要不……截图发我？我看看你有没有作弊 😏）";
 
-    // 现金：给选择提示
+    // 现金：给“拿现金”+“换神秘礼物”
     if (opt.type === "cash") {
-      resultSub.textContent = "现金奖励来了～你选：现在拿现金，还是换成「神秘礼物」？";
+      resultSub.textContent = "你可以选择：现在拿现金，或者换成「神秘礼物」？";
       addAction("现在拿现金 ✅", "primary", () => {
         resultMain.textContent = `确认：现金${opt.amount}`;
         resultSub.textContent = "好～那我记账了（转账/红包由你们自己约定发放方式）";
         clearActions();
+        // 如需现金确认后仍允许换神秘礼物，取消下一行注释：
+        // offerMysterySwap();
       });
-      addAction("换成神秘礼物 🎁", "danger", () => {
-        const mystery = options.find(o => o.type === "mystery");
-        resultMain.textContent = `你选择了：${mystery.label}`;
-        resultSub.textContent = "神秘礼物已锁定～想要的话，就来找我领 😌";
-        clearActions();
-      });
+      offerMysterySwap();
       return;
     }
 
-    // 惩罚：可再抽一次
+    // 惩罚：再抽一次 + 换神秘礼物
     if (opt.type === "punish") {
-      resultSub.textContent = "惩罚选项：答应对方一个要求（不过你可以再抽一次来“翻盘”）";
-      addAction("再抽一次 🔁", "danger", () => spin(true));
+      resultSub.textContent = "惩罚选项：答应对方一个要求（不过你可以再抽一次，或者直接换神秘礼物）";
+      addAction("再抽一次 🔁", "primary", () => spin(true));
+      offerMysterySwap();
       return;
     }
+
+    // 其他所有选项：统一提供换神秘礼物
+    resultSub.textContent = "你也可以选择：把它换成「神秘礼物」～";
+    offerMysterySwap();
   }
 
   // 旋转动画：抽到哪个就停到哪个
@@ -407,12 +376,9 @@ function showResult(opt, { pendingCashChoice = false } = {}) {
     <div><b>编号对应奖品：</b></div>
     ${options.map(o => `【${o.id}】${o.label}`).join("<br/>")}
     <div style="margin-top:10px;color:#666;">
-     
+      概率：现金三项合计 10%（各 3.33%），其余 5 项各 18%。
     </div>
   `;
 </script>
 </body>
 </html>
-
-
-
