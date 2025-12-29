@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>转盘抽奖</title>
+    <style>
+        :root {
+            --size: 320px;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at top, #fff2f7, #f6f7ff);
+            color: #222;
+        }
+
+        .wrap {
+            width: min(92vw, 420px);
+            text-align: center;
+            padding: 22px 16px 26px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 20px;
+        }
+
+        .wheel-area {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 14px 0 10px;
+        }
+
+        .pointer {
+            position: absolute;
+            top: 0;
+            z-index: 3;
+            width: 0;
+            height: 0;
+            border-left: 14px solid transparent;
+            border-right: 14px solid transparent;
+            border-bottom: 24px solid #ff3b7a;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .15));
+        }
+
+        canvas {
+            width: var(--size);
+            height: var(--size);
+            border-radius: 50%;
+            box-shadow: 0 14px 35px rgba(23, 32, 90, .18);
+            background: #fff;
+        }
+
+        .btn {
+            margin-top: 14px;
+            width: min(280px, 90%);
+            padding: 12px 14px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #ff3b7a, #ff7a3b);
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(255, 59, 122, .25);
+        }
+
+        .btn:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            margin: 10px 0 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .result {
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, .75);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .06);
+            display: none;
+        }
+
+        .result strong {
+            font-size: 16px;
+        }
+
+        .small {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>🎡 转盘抽奖</h1>
+
+        <div class="wheel-area">
+            <div class="pointer" aria-hidden="true"></div>
+            <canvas id="wheel" width="320" height="320"></canvas>
+        </div>
+
+        <button id="spinBtn" class="btn">开始抽奖</button>
+        <div class="hint">点一次抽一次（可按需改成可重复抽）</div>
+
+        <div id="resultBox" class="result">
+            <div>你抽到：<strong id="resultText"></strong></div>
+            <div class="small" id="resultSmall"></div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 可自定义奖项（你给的4个）=====
+        const items = [
+            "神秘礼物",
+            "答应对方一个要求",
+            "获得现金1000",
+            "可以提一个要求"
+        ];
+
+        // ===== 设置：是否只能抽一次（用 localStorage 记住）=====
+        const ONE_TIME_ONLY = true;
+        const STORAGE_KEY = "wheel_spun_once_v1";
+
+        // ===== 转盘绘制 =====
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const spinBtn = document.getElementById("spinBtn");
+        const resultBox = document.getElementById("resultBox");
+        const resultText = document.getElementById("resultText");
+        const resultSmall = document.getElementById("resultSmall");
+
+        const size = canvas.width;
+        const radius = size / 2;
+        const center = { x: radius, y: radius };
+
+        // 让文字更适合移动端
+        function fitFont(text) {
+            if (text.length <= 6) return 18;
+            if (text.length <= 9) return 16;
+            return 14;
+        }
+
+        function drawWheel(rotation = 0) {
+            ctx.clearRect(0, 0, size, size);
+
+            const n = items.length;
+            const anglePer = (Math.PI * 2) / n;
+
+            // 背景圈
+            ctx.save();
+            ctx.translate(center.x, center.y);
+            ctx.rotate(rotation);
+
+            for (let i = 0; i < n; i++) {
+                const start = i * anglePer;
+                const end = start + anglePer;
+
+                // 扇形颜色（交替）
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius - 6, start, end);
+                ctx.closePath();
+                ctx.fillStyle = i % 2 === 0 ? "#ffe1ec" : "#e8ecff";
+                ctx.fill();
+
+                // 扇形边线
+                ctx.strokeStyle = "rgba(0,0,0,.08)";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 文本
+                const mid = (start + end) / 2;
+                ctx.save();
+                ctx.rotate(mid);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#222";
+                ctx.font = `600 ${fitFont(items[i])}px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif`;
+                ctx.fillText(items[i], radius - 18, 6);
+                ctx.restore();
+            }
+
+            // 中心圆
+            ctx.beginPath();
+            ctx.arc(0, 0, 42, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.strokeStyle = "rgba(0,0,0,.08)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = "#ff3b7a";
+            ctx.font = '800 16px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.textAlign = "center";
+            ctx.fillText("SPIN", 0, 6);
+
+            ctx.restore();
+        }
+
+        // ===== 旋转动画 =====
+        let rotating = false;
+        let currentRotation = 0;
+
+        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+        function getRandomIndex() {
+            // 纯随机等概率；如你要加权，我也可以帮你改
+            return Math.floor(Math.random() * items.length);
+        }
+
+        function spin() {
+            if (rotating) return;
+
+            // 一次性限制
+            if (ONE_TIME_ONLY && localStorage.getItem(STORAGE_KEY) === "1") {
+                showResult("你已经抽过啦～", "如果想允许重复抽，把 ONE_TIME_ONLY 改成 false。");
+                return;
+            }
+
+            rotating = true;
+            spinBtn.disabled = true;
+            resultBox.style.display = "none";
+
+            const n = items.length;
+            const anglePer = (Math.PI * 2) / n;
+
+            // 指针在正上方（0度方向对应 canvas 右侧，需要换算）
+            // 我们把“中奖扇形的中心”转到指针位置（正上方），所以目标角度需要对齐。
+            const winnerIndex = getRandomIndex();
+            const winnerCenterAngle = (winnerIndex + 0.5) * anglePer;
+
+            // canvas 0 rad 在右侧，指针在上方 = -90° = -Math.PI/2
+            const pointerAngle = -Math.PI / 2;
+
+            // 目标旋转：让 winnerCenterAngle 旋到 pointerAngle
+            const targetRotationBase = pointerAngle - winnerCenterAngle;
+
+            // 多转几圈更好看
+            const extraTurns = 5 + Math.floor(Math.random() * 3); // 5~7圈
+            const targetRotation = targetRotationBase + extraTurns * Math.PI * 2;
+
+            const startRotation = currentRotation;
+            const delta = targetRotation - startRotation;
+
+            const duration = 3600; // ms
+            const startTime = performance.now();
+
+            function frame(now) {
+                const t = Math.min(1, (now - startTime) / duration);
+                const eased = easeOutCubic(t);
+                currentRotation = startRotation + delta * eased;
+                drawWheel(currentRotation);
+
+                if (t < 1) {
+                    requestAnimationFrame(frame);
+                } else {
+                    rotating = false;
+                    spinBtn.disabled = false;
+
+                    // 记录已抽
+                    if (ONE_TIME_ONLY) localStorage.setItem(STORAGE_KEY, "1");
+
+                    showResult(items[winnerIndex], "截图发给对方当凭证也可以～");
+                }
+            }
+
+            requestAnimationFrame(frame);
+        }
+
+        function showResult(text, small = "") {
+            resultText.textContent = text;
+            resultSmall.textContent = small;
+            resultBox.style.display = "block";
+        }
+
+        spinBtn.addEventListener("click", spin);
+
+        // 初始绘制
+        drawWheel(0);
+
+        // 初始化“一次性按钮文案”
+        if (ONE_TIME_ONLY && localStorage.getItem(STORAGE_KEY) === "1") {
+            spinBtn.textContent = "已抽过（点我查看提示）";
+        }
+    </script>
+</body>
+
+</html>
