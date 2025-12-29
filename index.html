@@ -104,7 +104,7 @@
         <canvas id="wheel" width="320" height="320"></canvas>
       </div>
       <button id="spinBtn" class="btn">开始抽奖</button>
-      <div class="hint">抽到“答应对象一个要求”= 惩罚：可再抽一次 😈</div>
+      <div class="hint">抽到“答应对象一个要求”= 唯一惩罚项目，但是可再抽一次 😈</div>
     </div>
 
     <div class="card">
@@ -366,9 +366,10 @@
     <div><b>编号对应奖品：</b></div>
     ${options.map(o => `【${o.id}】${o.label}`).join("<br/>")}
     <div style="margin-top:10px;color:#666;">
-      概率：现金1000=10%，可以提一个要求=10%，其余均分剩余80%。
+     
     </div>
   `;
 </script>
 </body>
 </html>
+
