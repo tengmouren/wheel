@@ -1,303 +1,374 @@
 <!doctype html>
 <html lang="zh-CN">
-
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>转盘抽奖</title>
-    <style>
-        :root {
-            --size: 320px;
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>跨年礼物转盘</title>
+  <style>
+    :root { --wheel: 320px; }
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+      background: radial-gradient(circle at top, #fff2f7, #f6f7ff);
+      color:#222;
+    }
+    .wrap{
+      width:min(94vw, 880px);
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      padding:18px 14px 22px;
+    }
+    @media (min-width: 860px){
+      .wrap{ grid-template-columns: 420px 1fr; align-items:center; }
+    }
+    h1{ margin:0; font-size:20px; text-align:center; }
+    .left{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+    .wheel-area{ position:relative; display:flex; align-items:center; justify-content:center; padding:10px 0; }
+    .pointer{
+      position:absolute; top:-2px; z-index:3;
+      width:0; height:0;
+      border-left:14px solid transparent;
+      border-right:14px solid transparent;
+      border-bottom:24px solid #ff3b7a;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,.15));
+    }
+    canvas{
+      width: var(--wheel);
+      height: var(--wheel);
+      border-radius:50%;
+      box-shadow: 0 14px 35px rgba(23, 32, 90, .18);
+      background:#fff;
+    }
+    .btn{
+      width:min(280px, 92%);
+      padding:12px 14px;
+      border:none;
+      border-radius:14px;
+      font-size:16px;
+      font-weight:700;
+      background: linear-gradient(135deg, #ff3b7a, #ff7a3b);
+      color:#fff;
+      cursor:pointer;
+      box-shadow: 0 10px 20px rgba(255,59,122,.25);
+    }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .hint{ font-size:12px; color:#666; text-align:center; }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-            background: radial-gradient(circle at top, #fff2f7, #f6f7ff);
-            color: #222;
-        }
+    .card{
+      background: rgba(255,255,255,.78);
+      border:1px solid rgba(0,0,0,.06);
+      border-radius:16px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.08);
+      padding:14px;
+    }
+    .result-title{ font-size:14px; color:#666; margin:0 0 6px; }
+    .result-main{ font-size:20px; font-weight:900; margin:0 0 10px; }
+    .result-sub{ font-size:13px; color:#666; margin:0 0 12px; line-height:1.45; }
 
-        .wrap {
-            width: min(92vw, 420px);
-            text-align: center;
-            padding: 22px 16px 26px;
-        }
-
-        h1 {
-            margin: 0 0 12px;
-            font-size: 20px;
-        }
-
-        .wheel-area {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 14px 0 10px;
-        }
-
-        .pointer {
-            position: absolute;
-            top: 0;
-            z-index: 3;
-            width: 0;
-            height: 0;
-            border-left: 14px solid transparent;
-            border-right: 14px solid transparent;
-            border-bottom: 24px solid #ff3b7a;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .15));
-        }
-
-        canvas {
-            width: var(--size);
-            height: var(--size);
-            border-radius: 50%;
-            box-shadow: 0 14px 35px rgba(23, 32, 90, .18);
-            background: #fff;
-        }
-
-        .btn {
-            margin-top: 14px;
-            width: min(280px, 90%);
-            padding: 12px 14px;
-            border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 600;
-            background: linear-gradient(135deg, #ff3b7a, #ff7a3b);
-            color: #fff;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(255, 59, 122, .25);
-        }
-
-        .btn:disabled {
-            opacity: .55;
-            cursor: not-allowed;
-        }
-
-        .hint {
-            margin: 10px 0 0;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .result {
-            margin-top: 14px;
-            padding: 12px 14px;
-            border-radius: 14px;
-            background: rgba(255, 255, 255, .75);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, .06);
-            display: none;
-        }
-
-        .result strong {
-            font-size: 16px;
-        }
-
-        .small {
-            font-size: 12px;
-            color: #666;
-            margin-top: 6px;
-        }
-    </style>
+    .actions{ display:flex; flex-wrap:wrap; gap:10px; }
+    .action{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(0,0,0,.10);
+      background:#fff;
+      cursor:pointer;
+      font-weight:700;
+      font-size:14px;
+    }
+    .action.primary{
+      border:none;
+      background: linear-gradient(135deg, #6b6bff, #55d6ff);
+      color:#0b1b2a;
+    }
+    .action.danger{
+      border:none;
+      background: linear-gradient(135deg, #ff3b7a, #ff7a3b);
+      color:#fff;
+    }
+    .list{
+      margin-top:10px;
+      font-size:13px;
+      color:#333;
+      line-height:1.6;
+    }
+    .list b{ color:#111; }
+  </style>
 </head>
-
 <body>
-    <div class="wrap">
-        <h1>🎡 转盘抽奖</h1>
-
-        <div class="wheel-area">
-            <div class="pointer" aria-hidden="true"></div>
-            <canvas id="wheel" width="320" height="320"></canvas>
-        </div>
-
-        <button id="spinBtn" class="btn">开始抽奖</button>
-        <div class="hint">点一次抽一次（可按需改成可重复抽）</div>
-
-        <div id="resultBox" class="result">
-            <div>你抽到：<strong id="resultText"></strong></div>
-            <div class="small" id="resultSmall"></div>
-        </div>
+  <div class="wrap">
+    <div class="left">
+      <h1>🎡 跨年礼物转盘</h1>
+      <div class="wheel-area">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" width="320" height="320"></canvas>
+      </div>
+      <button id="spinBtn" class="btn">开始抽奖</button>
+      <div class="hint">抽到“答应对象一个要求”= 惩罚：可再抽一次 😈</div>
     </div>
 
-    <script>
-        // ===== 可自定义奖项（你给的4个）=====
-        const items = [
-            "神秘礼物",
-            "答应对方一个要求",
-            "获得现金1000",
-            "可以提一个要求"
-        ];
+    <div class="card">
+      <p class="result-title">开奖结果</p>
+      <p class="result-main" id="resultMain">还没抽～</p>
+      <p class="result-sub" id="resultSub">点左边“开始抽奖”，结果会显示在这里（不会再挤在转盘上）。</p>
 
-        // ===== 设置：是否只能抽一次（用 localStorage 记住）=====
-        const ONE_TIME_ONLY = true;
-        const STORAGE_KEY = "wheel_spun_once_v1";
+      <div class="actions" id="actions"></div>
 
-        // ===== 转盘绘制 =====
-        const canvas = document.getElementById("wheel");
-        const ctx = canvas.getContext("2d");
-        const spinBtn = document.getElementById("spinBtn");
-        const resultBox = document.getElementById("resultBox");
-        const resultText = document.getElementById("resultText");
-        const resultSmall = document.getElementById("resultSmall");
+      <div class="list" id="optionsList"></div>
+    </div>
+  </div>
 
-        const size = canvas.width;
-        const radius = size / 2;
-        const center = { x: radius, y: radius };
+<script>
+  /**
+   * 选项（内部真实内容）
+   */
+  const options = [
+    { id: 1, label: "现金1000", type: "cash", amount: 1000 },
+    { id: 2, label: "神秘礼物", type: "mystery" },
+    { id: 3, label: "可以提一个要求", type: "ask" },
+    { id: 4, label: "现金500", type: "cash", amount: 500 },
+    { id: 5, label: "答应对象一个要求（惩罚：可再抽一次）", type: "punish" },
+    { id: 6, label: "现金1500", type: "cash", amount: 1500 },
+    { id: 7, label: "洛丽塔", type: "gift" },
+    { id: 8, label: "包包", type: "gift" }
+  ];
 
-        // 让文字更适合移动端
-        function fitFont(text) {
-            if (text.length <= 6) return 18;
-            if (text.length <= 9) return 16;
-            return 14;
-        }
+  /**
+   * 概率权重（总和=100）
+   * - 现金1000：10%
+   * - 可以提一个要求：10%
+   * - 其余6项均分剩余80% => 每项 13.333...%
+   * 你要改概率，只改这里就行。
+   */
+  const weights = new Map([
+    [1, 10],           // 现金1000
+    [3, 10],           // 可以提一个要求
+    [2, 80/6],         // 神秘礼物
+    [4, 80/6],         // 现金500
+    [5, 80/6],         // 惩罚：答应对象一个要求
+    [6, 80/6],         // 现金1500
+    [7, 80/6],         // 洛丽塔
+    [8, 80/6],         // 包包
+  ]);
 
-        function drawWheel(rotation = 0) {
-            ctx.clearRect(0, 0, size, size);
+  /**
+   * 是否限制只能抽一次（默认不限制，更适合暧昧互动）
+   * 如果你想“每个设备只能抽一次”，改成 true
+   */
+  const ONE_TIME_ONLY = false;
+  const STORAGE_KEY = "newyear_wheel_spun_v1";
 
-            const n = items.length;
-            const anglePer = (Math.PI * 2) / n;
+  // ===== UI 元素 =====
+  const canvas = document.getElementById("wheel");
+  const ctx = canvas.getContext("2d");
+  const spinBtn = document.getElementById("spinBtn");
+  const resultMain = document.getElementById("resultMain");
+  const resultSub = document.getElementById("resultSub");
+  const actions = document.getElementById("actions");
+  const optionsList = document.getElementById("optionsList");
 
-            // 背景圈
-            ctx.save();
-            ctx.translate(center.x, center.y);
-            ctx.rotate(rotation);
+  const size = canvas.width;
+  const radius = size / 2;
+  const center = { x: radius, y: radius };
 
-            for (let i = 0; i < n; i++) {
-                const start = i * anglePer;
-                const end = start + anglePer;
+  // 转盘上只显示短文字，避免字体显示不全：这里用“1~8”
+  const wheelShortTexts = options.map(o => String(o.id));
 
-                // 扇形颜色（交替）
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.arc(0, 0, radius - 6, start, end);
-                ctx.closePath();
-                ctx.fillStyle = i % 2 === 0 ? "#ffe1ec" : "#e8ecff";
-                ctx.fill();
+  function drawWheel(rotation = 0) {
+    ctx.clearRect(0, 0, size, size);
 
-                // 扇形边线
-                ctx.strokeStyle = "rgba(0,0,0,.08)";
-                ctx.lineWidth = 2;
-                ctx.stroke();
+    const n = options.length;
+    const anglePer = (Math.PI * 2) / n;
 
-                // 文本
-                const mid = (start + end) / 2;
-                ctx.save();
-                ctx.rotate(mid);
-                ctx.textAlign = "right";
-                ctx.fillStyle = "#222";
-                ctx.font = `600 ${fitFont(items[i])}px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif`;
-                ctx.fillText(items[i], radius - 18, 6);
-                ctx.restore();
-            }
+    ctx.save();
+    ctx.translate(center.x, center.y);
+    ctx.rotate(rotation);
 
-            // 中心圆
-            ctx.beginPath();
-            ctx.arc(0, 0, 42, 0, Math.PI * 2);
-            ctx.fillStyle = "#fff";
-            ctx.fill();
-            ctx.strokeStyle = "rgba(0,0,0,.08)";
-            ctx.lineWidth = 2;
-            ctx.stroke();
+    for (let i = 0; i < n; i++) {
+      const start = i * anglePer;
+      const end = start + anglePer;
 
-            ctx.fillStyle = "#ff3b7a";
-            ctx.font = '800 16px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
-            ctx.textAlign = "center";
-            ctx.fillText("SPIN", 0, 6);
+      // 扇形
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.arc(0, 0, radius - 6, start, end);
+      ctx.closePath();
+      ctx.fillStyle = i % 2 === 0 ? "#ffe1ec" : "#e8ecff";
+      ctx.fill();
 
-            ctx.restore();
-        }
+      ctx.strokeStyle = "rgba(0,0,0,.08)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
 
-        // ===== 旋转动画 =====
-        let rotating = false;
-        let currentRotation = 0;
+      // 短文本（1~8）
+      const mid = (start + end) / 2;
+      ctx.save();
+      ctx.rotate(mid);
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#222";
+      ctx.font = '900 22px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.fillText(wheelShortTexts[i], radius - 18, 8);
+      ctx.restore();
+    }
 
-        function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+    // 中心
+    ctx.beginPath();
+    ctx.arc(0, 0, 44, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,.08)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-        function getRandomIndex() {
-            // 纯随机等概率；如你要加权，我也可以帮你改
-            return Math.floor(Math.random() * items.length);
-        }
+    ctx.fillStyle = "#ff3b7a";
+    ctx.font = '900 16px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = "center";
+    ctx.fillText("SPIN", 0, 6);
 
-        function spin() {
-            if (rotating) return;
+    ctx.restore();
+  }
 
-            // 一次性限制
-            if (ONE_TIME_ONLY && localStorage.getItem(STORAGE_KEY) === "1") {
-                showResult("你已经抽过啦～", "如果想允许重复抽，把 ONE_TIME_ONLY 改成 false。");
-                return;
-            }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
 
-            rotating = true;
-            spinBtn.disabled = true;
-            resultBox.style.display = "none";
+  function weightedPick() {
+    const list = options.map(o => ({ opt: o, w: weights.get(o.id) ?? 0 }));
+    const total = list.reduce((s, x) => s + x.w, 0);
+    const r = Math.random() * total;
+    let acc = 0;
+    for (const x of list) {
+      acc += x.w;
+      if (r <= acc) return x.opt;
+    }
+    return list[list.length - 1].opt; // fallback
+  }
 
-            const n = items.length;
-            const anglePer = (Math.PI * 2) / n;
+  function clearActions() {
+    actions.innerHTML = "";
+  }
 
-            // 指针在正上方（0度方向对应 canvas 右侧，需要换算）
-            // 我们把“中奖扇形的中心”转到指针位置（正上方），所以目标角度需要对齐。
-            const winnerIndex = getRandomIndex();
-            const winnerCenterAngle = (winnerIndex + 0.5) * anglePer;
+  function addAction(text, cls, onClick) {
+    const btn = document.createElement("button");
+    btn.className = "action " + (cls || "");
+    btn.textContent = text;
+    btn.addEventListener("click", onClick);
+    actions.appendChild(btn);
+  }
 
-            // canvas 0 rad 在右侧，指针在上方 = -90° = -Math.PI/2
-            const pointerAngle = -Math.PI / 2;
+  function showResult(opt, { pendingCashChoice = false } = {}) {
+    clearActions();
 
-            // 目标旋转：让 winnerCenterAngle 旋到 pointerAngle
-            const targetRotationBase = pointerAngle - winnerCenterAngle;
+    if (typeof opt === "string") {
+      resultMain.textContent = opt;
+      resultSub.textContent = "";
+      return;
+    }
 
-            // 多转几圈更好看
-            const extraTurns = 5 + Math.floor(Math.random() * 3); // 5~7圈
-            const targetRotation = targetRotationBase + extraTurns * Math.PI * 2;
+    resultMain.textContent = `你抽到：${opt.label}`;
+    // 默认副文案
+    resultSub.textContent = "（要不……截图发我？我看看你有没有作弊 😏）";
 
-            const startRotation = currentRotation;
-            const delta = targetRotation - startRotation;
+    // 现金：给选择提示
+    if (opt.type === "cash") {
+      resultSub.textContent = "现金奖励来了～你选：现在拿现金，还是换成「神秘礼物」？";
+      addAction("现在拿现金 ✅", "primary", () => {
+        resultMain.textContent = `确认：现金${opt.amount}`;
+        resultSub.textContent = "好～那我记账了（转账/红包由你们自己约定发放方式）";
+        clearActions();
+      });
+      addAction("换成神秘礼物 🎁", "danger", () => {
+        const mystery = options.find(o => o.type === "mystery");
+        resultMain.textContent = `你选择了：${mystery.label}`;
+        resultSub.textContent = "神秘礼物已锁定～想要的话，就来找我领 😌";
+        clearActions();
+      });
+      return;
+    }
 
-            const duration = 3600; // ms
-            const startTime = performance.now();
+    // 惩罚：可再抽一次
+    if (opt.type === "punish") {
+      resultSub.textContent = "惩罚选项：答应对方一个要求（不过你可以再抽一次来“翻盘”）";
+      addAction("再抽一次 🔁", "danger", () => spin(true));
+      return;
+    }
+  }
 
-            function frame(now) {
-                const t = Math.min(1, (now - startTime) / duration);
-                const eased = easeOutCubic(t);
-                currentRotation = startRotation + delta * eased;
-                drawWheel(currentRotation);
+  // 旋转动画：抽到哪个就停到哪个
+  let rotating = false;
+  let currentRotation = 0;
 
-                if (t < 1) {
-                    requestAnimationFrame(frame);
-                } else {
-                    rotating = false;
-                    spinBtn.disabled = false;
+  function spin(isBonusSpin = false) {
+    if (rotating) return;
 
-                    // 记录已抽
-                    if (ONE_TIME_ONLY) localStorage.setItem(STORAGE_KEY, "1");
+    if (ONE_TIME_ONLY && !isBonusSpin && localStorage.getItem(STORAGE_KEY) === "1") {
+      showResult("你已经抽过啦～");
+      resultSub.textContent = "如果想允许重复抽，把 ONE_TIME_ONLY 改成 false。";
+      return;
+    }
 
-                    showResult(items[winnerIndex], "截图发给对方当凭证也可以～");
-                }
-            }
+    rotating = true;
+    spinBtn.disabled = true;
+    clearActions();
 
-            requestAnimationFrame(frame);
-        }
+    const winner = weightedPick();
+    const n = options.length;
+    const anglePer = (Math.PI * 2) / n;
 
-        function showResult(text, small = "") {
-            resultText.textContent = text;
-            resultSmall.textContent = small;
-            resultBox.style.display = "block";
-        }
+    // winner 在数组里的索引
+    const winnerIndex = options.findIndex(o => o.id === winner.id);
 
-        spinBtn.addEventListener("click", spin);
+    // 让该扇形中心对齐指针（上方）
+    const winnerCenterAngle = (winnerIndex + 0.5) * anglePer;
+    const pointerAngle = -Math.PI / 2;
+    const targetRotationBase = pointerAngle - winnerCenterAngle;
 
-        // 初始绘制
-        drawWheel(0);
+    const extraTurns = 5 + Math.floor(Math.random() * 3);
+    const targetRotation = targetRotationBase + extraTurns * Math.PI * 2;
 
-        // 初始化“一次性按钮文案”
+    const startRotation = currentRotation;
+    const delta = targetRotation - startRotation;
+
+    const duration = 3600;
+    const startTime = performance.now();
+
+    function frame(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = easeOutCubic(t);
+      currentRotation = startRotation + delta * eased;
+      drawWheel(currentRotation);
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        rotating = false;
+        spinBtn.disabled = false;
+
+        // 只有非“奖励再抽”才记一次
+        if (ONE_TIME_ONLY && !isBonusSpin) localStorage.setItem(STORAGE_KEY, "1");
+
+        showResult(winner);
+
+        // 如果 ONE_TIME_ONLY 开启且抽完，按钮文案变一下
         if (ONE_TIME_ONLY && localStorage.getItem(STORAGE_KEY) === "1") {
-            spinBtn.textContent = "已抽过（点我查看提示）";
+          spinBtn.textContent = "已抽过（点我查看提示）";
         }
-    </script>
-</body>
+      }
+    }
+    requestAnimationFrame(frame);
+  }
 
+  spinBtn.addEventListener("click", () => spin(false));
+
+  // 初始绘制
+  drawWheel(0);
+
+  // 右侧展示“编号对应奖品”
+  optionsList.innerHTML = `
+    <div><b>编号对应奖品：</b></div>
+    ${options.map(o => `【${o.id}】${o.label}`).join("<br/>")}
+    <div style="margin-top:10px;color:#666;">
+      概率：现金1000=10%，可以提一个要求=10%，其余均分剩余80%。
+    </div>
+  `;
+</script>
+</body>
 </html>
